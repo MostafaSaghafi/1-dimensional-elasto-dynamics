@@ -1,6 +1,5 @@
 # 1-dimensional-elasto-dynamics
 
-----
 
 This MATLAB code implements a 1-dimensional finite element method (FEM) for solving the elasto-dynamics problem.
 

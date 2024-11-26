@@ -2,186 +2,162 @@
 
 ----
 
-Here is a properly formatted review for your GitHub repository, with the equations written using LaTeX-style syntax (Markdown + MathJax compatibility). You can copy this and paste it directly into your README.md or any other Markdown file in your repository.
+This MATLAB code implements a 1-dimensional finite element method (FEM) for solving the elasto-dynamics problem.
 
----
 
-# **1D Elasto-Dynamics Code: Explanation**
+# 1D Elasto-Dynamics FEM Implementation Review
 
-This MATLAB code implements a 1-dimensional finite element method (FEM) for solving the elasto-dynamics problem. The following is a detailed breakdown of the code's key components.
+## 1. Problem Setup
+The governing equation is:
 
----
-
-## **1. Governing Equation**
-
-The problem is modeled using the elasto-dynamic equation:
-
-\[
+```math
 \nabla \cdot \sigma + \rho a = 0
-\]
+```
 
 where:
+- σ: Stress
+- ρ: Density
+- a: Acceleration
 
-- \(\sigma\): Stress
-- \(\rho\): Density
-- \(a\): Acceleration
+## 2. Mesh Generation
+- Domain boundaries: `xstart = 0` to `xend = 1`
+- Number of elements (`tne`): 100
+- Element type: Q2 (quadratic elements)
 
-The code uses FEM to calculate the dynamic response of a material to time-varying forces.
+The `CreateMesh` function generates:
+- Element lengths (L)
+- Node coordinates (x)
+- Connectivity arrays (lnn, egnn)
 
----
+## 3. Material Properties
+- Elasticity tensor (E): 200,000 (units not specified)
+- Density (ρ): 1160 (units not specified)
 
-## **2. Mesh Generation**
+## 4. Pre-calculation
+### Gaussian Quadrature
+- Used for integral evaluation over elements
+- Number of Gauss points (ngp): 3
 
-- **Domain**: Defined between \(x_{\text{start}} = 0\) and \(x_{\text{end}} = 1\).
-- **Number of Elements**: \(t_{\text{ne}} = 100\).
-- **Element Type**: Quadratic elements (\(Q_2\)).
+### Shape Functions
+- Interpolate values within elements
+- Derivatives used for element matrix computation
 
-Using the custom `CreateMesh` function, the following are calculated:
+## 5. Element Matrices
+For each element, three main components are computed:
+- Mass matrix (Me)
+- Stiffness matrix (Ke)
+- Force vector (Fe)
 
-- Element lengths (\(L\)).
-- Node coordinates (\(x\)).
-- Connectivity arrays for the FEM mesh.
+### Key Equations:
 
----
-
-## **3. Material Properties**
-
-- **Elasticity tensor** (\(E\)): \(E = 200{,}000\).
-- **Density** (\(\rho\)): \(\rho = 1160\).
-
-These values are constant within each element.
-
----
-
-## **4. Pre-calculation**
-
-### **Gaussian Quadrature**
-To integrate element matrices numerically, the Gaussian quadrature method is used with \(n_{\text{gp}} = 3\) points.
-
----
-
-### **Shape Functions**
-Quadratic shape functions (\(Q_2\)) and their derivatives are computed to interpolate and evaluate quantities over an element.
-
----
-
-## **5. Element Matrices**
-
-The element-level **mass matrix**, **stiffness matrix**, and **force vector** are computed for each element using Gaussian quadrature.
-
-### **Key Equations**
-
-1. **Mass Matrix** (\(M_e\)):
-
-\[
+Mass Matrix:
+```math
 M_e = \int N^T \rho N \, J \, dx
-\]
+```
 
-2. **Stiffness Matrix** (\(K_e\)):
-
-\[
+Stiffness Matrix:
+```math
 K_e = \int B^T \frac{E}{J} B \, J \, dx
-\]
+```
 
-3. **Force Vector** (\(F_e\)) (with an example force):
+Force Vector:
+```math
+F_e = \int N^T f \, J \, dx
+```
 
-\[
-F_e = \int N^T \cdot \text{force} \, J \, dx
-\]
+where:
+- N: Shape functions
+- B: Shape function derivatives
+- J: Jacobian determinant
+- f: Force function (example: f = (3x + x²)eˣ)
 
-Where:
+## 6. Global Assembly
+Element matrices are assembled into global system:
+- Global mass matrix (M)
+- Global stiffness matrix (K)
+- Global force vector (F)
 
-- \(N\): Shape function matrix.
-- \(B\): Derivatives of the shape functions.
-- \(J\): Jacobian determinant.
+## 7. Boundary Conditions
+Two types implemented:
+- Dirichlet Boundary: Node 1 fixed
+- Neumann Boundary: Prescribed force at last node
 
-A sample force is given by:
+Matrices are partitioned into:
+- Free (f) degrees of freedom
+- Prescribed (p) degrees of freedom
 
-\[
-\text{force} = (3x + x^2)e^x
-\]
+## 8. Time Integration (Newmark Method)
+### Parameters:
+- Total time (T): 1 second
+- Time step (dt): 0.01 seconds
+- Newmark parameters:
+  ```math
+  \gamma = 0.5
+  ```
+  ```math
+  \beta = 0.5
+  ```
+
+### Algorithm Steps:
+1. Initialize displacement (U), velocity (V), and acceleration (A)
+
+2. Initial acceleration:
+```math
+A = M_{ff}^{-1} (F_f - K_{ff} U_f)
+```
+
+3. For each time step:
+
+   a. Displacement Predictor:
+   ```math
+   U_{f,n} = U_{f,n-1} + \Delta t V_{f,n-1} + \frac{\Delta t^2}{2}(1-2\beta)A_{f,n-1}
+   ```
+
+   b. Velocity Predictor:
+   ```math
+   V_{f,n} = V_{f,n-1} + \Delta t(1-\gamma)A_{f,n-1}
+   ```
+
+   c. Solve for Acceleration:
+   ```math
+   A_{f,n} = (M_{ff} + \beta\Delta t^2K_{ff})^{-1}(F_{f,n} - K_{ff}U_{f,n})
+   ```
+
+   d. Correctors:
+   ```math
+   U_{f,n} = U_{f,n} + \beta\Delta t^2A_{f,n}
+   ```
+   ```math
+   V_{f,n} = V_{f,n} + \gamma\Delta t A_{f,n}
+   ```
+
+## 9. Post-Processing
+Real-time visualization of:
+- Displacement distribution
+- Velocity distribution
+- Acceleration distribution
+
+## 10. Key Features
+1. 1D FEM Implementation
+2. Dynamic Analysis using Newmark Method
+3. Quadratic Elements (Q2)
+4. Gaussian Quadrature Integration
+5. Mixed Boundary Conditions
+
+## Applications
+The code is suitable for:
+- Wave propagation analysis in 1D elastic media
+- Dynamic response studies under time-varying loads
+- Stress and displacement analysis in 1D structures
+- Educational purposes in computational mechanics
+
+## Technical Implementation Notes
+- Written in MATLAB
+- Modular structure with separate mesh generation
+- Efficient matrix operations using MATLAB's built-in functions
+- Real-time visualization capabilities
+
+This implementation serves as an excellent example of numerical methods in computational mechanics, specifically for elastic wave propagation problems in one dimension.
 
 ---
 
-## **6. Global Matrix Assembly**
-
-After calculating element-level matrices, they are assembled into global matrices:
-
-- Global **mass matrix** (\(\bar{M}\)).
-- Global **stiffness matrix** (\(\bar{K}\)).
-- Global **force vector** (\(\bar{F}\)).
-
----
-
-## **7. Boundary Conditions**
-
-- **Dirichlet Boundary**: Node 1 is fixed.
-- **Neumann Boundary**: The last node has a prescribed force.
-
-Global matrices and vectors are partitioned into free (\(f\)) and fixed (\(p\)) degrees of freedom for boundary condition application.
-
----
-
-## **8. Time Integration (Newmark Method)**
-
-The **Newmark method** is used to perform time integration. It is a second-order implicit method for solving dynamic problems.
-
-### **Time Parameters**
-- **Total time**: \(T = 1\) second.
-- **Time step size**: \(dt = 0.01\).
-- **Newmark Parameters**:
-  - \(\gamma = 0.5\)
-  - \(\beta = 0.5\)
-
----
-
-### **Solution Steps**
-
-1. **At \(t = 0\):**
-   The initial acceleration is computed as:
-
-   \[
-   A = M_{ff}^{-1} \left( F_f - K_{ff} U_f \right)
-   \]
-
-2. **System decomposition**:
-   For faster computation, \(M_{ff} + K_{ff} (dt^2 \cdot \beta)\) is decomposed.
-
-3. **For \(t > 0\):**
-   At every time step, the following steps are performed:
-   - **Predict displacement** (\(U\)) and velocity (\(V\)).
-   - Solve for the new acceleration (\(A\)).
-   - Correct \(U\) and \(V\) using the computed \(A\).
-
----
-
-## **9. Post-Processing**
-
-Displacement, velocity, and acceleration are plotted at each time step to visualize their evolution. The plots reveal how the material reacts dynamically under the applied force.
-
----
-
-## **10. Key Features of the Code**
-
-- **1D Finite Element Analysis**:
-  Uses a 1-dimensional mesh with quadratic elements for higher accuracy.
-- **Dynamic Problem**:
-  Solves for displacements, velocities, and accelerations over time.
-- **Efficient Computation**:
-  Employs Gaussian quadrature and Newmark time integration.
-- **Visualization**:
-  Offers real-time plots of the solution during the simulation.
-
----
-
-### **Applications**
-
-This code can be used to simulate:
-
-1. Wave propagation in elastic media.
-2. Dynamic material response under applied loads.
-3. Distribution of stress and displacement in 1D structures.
-
----
-
-You can now add this explanation to your GitHub repository! If you want any further modifications or additional details, let me know.
